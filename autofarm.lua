@@ -60,7 +60,7 @@ local HarvestIgnores = {
 }
 
 --// Globals
-local SelectedSeed, AutoPlantRandom, AutoPlant, AutoHarvest, AutoBuy, SellThreshold, NoClip, AutoWalkAllowRandom
+local SelectedSeed, AutoPlantRandom, AutoPlant, AutoHarvest, AutoBuy, AutoBuyAll, SellThreshold, NoClip, AutoWalkAllowRandom, AutoSell, AutoWalk, AutoWalkStatus, AutoWalkMaxWait, SelectedSeedStock
 
 local function CreateWindow()
 	local Window = ReGui:Window({
@@ -133,6 +133,16 @@ local function BuyAllSelectedSeeds()
 
     for i = 1, Stock do
         BuySeed(Seed)
+    end
+end
+
+local function BuyAllAvailableSeeds()
+    for SeedName, Stock in pairs(SeedStock) do
+        if Stock > 0 then
+            for i = 1, Stock do
+                BuySeed(SeedName)
+            end
+        end
     end
 end
 
@@ -420,6 +430,9 @@ local function StartServices()
 	--// Auto-Buy
 	MakeLoop(AutoBuy, BuyAllSelectedSeeds)
 
+	--// Auto-Buy All
+	MakeLoop(AutoBuyAll, BuyAllAvailableSeeds)
+
 	--// Auto-Plant
 	MakeLoop(AutoPlant, AutoPlantLoop)
 
@@ -490,6 +503,10 @@ AutoBuy = BuyNode:Checkbox({
 	Value = false,
 	Label = "Enabled"
 })
+AutoBuyAll = BuyNode:Checkbox({
+	Value = false,
+	Label = "Auto-Buy All Seeds"
+})
 OnlyShowStock = BuyNode:Checkbox({
 	Value = false,
 	Label = "Only list stock"
@@ -497,6 +514,10 @@ OnlyShowStock = BuyNode:Checkbox({
 BuyNode:Button({
 	Text = "Buy all",
 	Callback = BuyAllSelectedSeeds,
+})
+BuyNode:Button({
+	Text = "Buy all seeds",
+	Callback = BuyAllAvailableSeeds,
 })
 
 --// Auto-Sell
