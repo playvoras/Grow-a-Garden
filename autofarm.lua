@@ -1,10 +1,3 @@
---[[
-    @author depso (depthso)
-    @description Grow a Garden auto-farm script
-    https://www.roblox.com/games/126884695634066
-]]
-
---// Services
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local InsertService = game:GetService("InsertService")
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -19,11 +12,9 @@ local PlayerGui = LocalPlayer.PlayerGui
 local ShecklesCount = Leaderstats.Sheckles
 local GameInfo = MarketplaceService:GetProductInfo(game.PlaceId)
 
---// ReGui
 local ReGui = loadstring(game:HttpGet('https://raw.githubusercontent.com/depthso/Dear-ReGui/refs/heads/main/ReGui.lua'))()
 local PrefabsId = "rbxassetid://" .. ReGui.PrefabsId
 
---// Folders
 local GameEvents = ReplicatedStorage.GameEvents
 local Farms = workspace.Farm
 
@@ -33,7 +24,6 @@ local Accent = {
     Brown = Color3.fromRGB(26, 20, 8),
 }
 
---// ReGui configuration (Ui library)
 ReGui:Init({
 	Prefabs = InsertService:LoadLocalAsset(PrefabsId)
 })
@@ -50,7 +40,6 @@ ReGui:DefineTheme("GardenTheme", {
     SliderGrab = Accent.Green,
 })
 
---// Dicts
 local SeedStock = {}
 local OwnedSeeds = {}
 local HarvestIgnores = {
@@ -59,8 +48,7 @@ local HarvestIgnores = {
 	Rainbow = false
 }
 
---// Globals
-local SelectedSeed, AutoPlantRandom, AutoPlant, AutoHarvest, AutoBuy, AutoBuyAll, SellThreshold, NoClip, AutoWalkAllowRandom, AutoSell, AutoWalk, AutoWalkStatus, AutoWalkMaxWait, SelectedSeedStock
+local SelectedSeed, AutoPlantRandom, AutoPlant, AutoHarvest, AutoBuy, AutoBuyAll, SellThreshold, NoClip, AutoWalkAllowRandom, AutoSell, AutoWalk, AutoWalkStatus, AutoWalkMaxWait, SelectedSeedStock, AutoBuyFriendshipPot
 
 local function CreateWindow()
 	local Window = ReGui:Window({
@@ -71,7 +59,6 @@ local function CreateWindow()
 	return Window
 end
 
---// Interface functions
 local function Plant(Position: Vector3, Seed: string)
 	GameEvents.Plant_RE:FireServer(Position, Seed)
 	wait(.3)
@@ -106,7 +93,6 @@ local function SellInventory()
 	local Previous = Character:GetPivot()
 	local PreviousSheckles = ShecklesCount.Value
 
-	--// Prevent conflict
 	if IsSelling then return end
 	IsSelling = true
 
@@ -123,6 +109,10 @@ end
 
 local function BuySeed(Seed: string)
 	GameEvents.BuySeedStock:FireServer(Seed)
+end
+
+local function BuyFriendshipPot()
+	GameEvents.BuyGearStock:FireServer("Friendship Pot")
 end
 
 local function BuyAllSelectedSeeds()
@@ -198,11 +188,9 @@ local function GetArea(Base: BasePart)
 	local Center = Base:GetPivot()
 	local Size = Base.Size
 
-	--// Bottom left
 	local X1 = math.ceil(Center.X - (Size.X/2))
 	local Z1 = math.ceil(Center.Z - (Size.Z/2))
 
-	--// Top right
 	local X2 = math.floor(Center.X + (Size.X/2))
 	local Z2 = math.floor(Center.Z + (Size.Z/2))
 
@@ -217,7 +205,6 @@ local function EquipCheck(Tool)
     Humanoid:EquipTool(Tool)
 end
 
---// Auto farm functions
 local MyFarm = GetFarm(LocalPlayer.Name)
 local MyImportant = MyFarm.Important
 local PlantLocations = MyImportant.Plant_Locations
@@ -246,16 +233,13 @@ local function AutoPlantLoop()
     local Count = SeedData.Count
     local Tool = SeedData.Tool
 
-	--// Check for stock
 	if Count <= 0 then return end
 
     local Planted = 0
 	local Step = 1
 
-	--// Check if the client needs to equip the tool
     EquipCheck(Tool)
 
-	--// Plant at random points
 	if AutoPlantRandom.Value then
 		for i = 1, Count do
 			local Point = GetRandomFarmPoint()
@@ -263,7 +247,6 @@ local function AutoPlantLoop()
 		end
 	end
 	
-	--// Plant on the farmland area
 	for X = X1, X2, Step do
 		for Z = Z1, Z2, Step do
 			if Planted > Count then break end
@@ -278,7 +261,6 @@ end
 local function HarvestPlant(Plant: Model)
 	local Prompt = Plant:FindFirstChild("ProximityPrompt", true)
 
-	--// Check if it can be harvested
 	if not Prompt then return end
 	fireproximityprompt(Prompt)
 end
@@ -296,7 +278,6 @@ local function GetSeedStock(IgnoreNoStock: boolean?): table
 		local StockText = MainFrame.Stock_Text.Text
 		local StockCount = tonumber(StockText:match("%d+"))
 
-		--// Seperate list
 		if IgnoreNoStock then
 			if StockCount <= 0 then continue end
 			NewList[Item.Name] = StockCount
@@ -322,22 +303,18 @@ local function CollectHarvestable(Parent, Plants, IgnoreDistance: boolean?)
 	local PlayerPosition = Character:GetPivot().Position
 
     for _, Plant in next, Parent:GetChildren() do
-        --// Fruits
 		local Fruits = Plant:FindFirstChild("Fruits")
 		if Fruits then
 			CollectHarvestable(Fruits, Plants, IgnoreDistance)
 		end
 
-		--// Distance check
 		local PlantPosition = Plant:GetPivot().Position
 		local Distance = (PlayerPosition-PlantPosition).Magnitude
 		if not IgnoreDistance and Distance > 15 then continue end
 
-		--// Ignore check
 		local Variant = Plant:FindFirstChild("Variant")
 		if HarvestIgnores[Variant.Value] then continue end
 
-        --// Collect
         if CanHarvest(Plant) then
             table.insert(Plants, Plant)
         end
@@ -377,7 +354,6 @@ local function AutoWalkLoop()
 	local RandomAllowed = AutoWalkAllowRandom.Value
 	local DoRandom = #Plants == 0 or math.random(1, 3) == 2
 
-    --// Random point
     if RandomAllowed and DoRandom then
         local Position = GetRandomFarmPoint()
         Humanoid:MoveTo(Position)
@@ -385,7 +361,6 @@ local function AutoWalkLoop()
         return
     end
    
-    --// Move to each plant
     for _, Plant in next, Plants do
         local Position = Plant:GetPivot().Position
         Humanoid:MoveTo(Position)
@@ -415,28 +390,27 @@ local function MakeLoop(Toggle, Func)
 end
 
 local function StartServices()
-	--// Auto-Walk
 	MakeLoop(AutoWalk, function()
 		local MaxWait = AutoWalkMaxWait.Value
 		AutoWalkLoop()
 		wait(math.random(1, MaxWait))
 	end)
 
-	--// Auto-Harvest
 	MakeLoop(AutoHarvest, function()
 		HarvestPlants(PlantsPhysical)
 	end)
 
-	--// Auto-Buy
 	MakeLoop(AutoBuy, BuyAllSelectedSeeds)
 
-	--// Auto-Buy All
 	MakeLoop(AutoBuyAll, BuyAllAvailableSeeds)
 
-	--// Auto-Plant
+	MakeLoop(AutoBuyFriendshipPot, function()
+		BuyFriendshipPot()
+		wait(1)
+	end)
+
 	MakeLoop(AutoPlant, AutoPlantLoop)
 
-	--// Get stocks
 	while wait(.1) do
 		GetSeedStock()
 		GetOwnedSeeds()
@@ -455,10 +429,8 @@ local function CreateCheckboxes(Parent, Dict: table)
 	end
 end
 
---// Window
 local Window = CreateWindow()
 
---// Auto-Plant
 local PlantNode = Window:TreeNode({Title="Auto-Plant 🥕"})
 SelectedSeed = PlantNode:Combo({
 	Label = "Seed",
@@ -478,7 +450,6 @@ PlantNode:Button({
 	Callback = AutoPlantLoop,
 })
 
---// Auto-Harvest
 local HarvestNode = Window:TreeNode({Title="Auto-Harvest 🚜"})
 AutoHarvest = HarvestNode:Checkbox({
 	Value = false,
@@ -487,7 +458,6 @@ AutoHarvest = HarvestNode:Checkbox({
 HarvestNode:Separator({Text="Ignores:"})
 CreateCheckboxes(HarvestNode, HarvestIgnores)
 
---// Auto-Buy
 local BuyNode = Window:TreeNode({Title="Auto-Buy 🥕"})
 local OnlyShowStock
 
@@ -507,6 +477,10 @@ AutoBuyAll = BuyNode:Checkbox({
 	Value = false,
 	Label = "Auto-Buy All Seeds"
 })
+AutoBuyFriendshipPot = BuyNode:Checkbox({
+	Value = false,
+	Label = "Auto-Buy Friendship Pot"
+})
 OnlyShowStock = BuyNode:Checkbox({
 	Value = false,
 	Label = "Only list stock"
@@ -519,8 +493,11 @@ BuyNode:Button({
 	Text = "Buy all seeds",
 	Callback = BuyAllAvailableSeeds,
 })
+BuyNode:Button({
+	Text = "Buy Friendship Pot",
+	Callback = BuyFriendshipPot,
+})
 
---// Auto-Sell
 local SellNode = Window:TreeNode({Title="Auto-Sell 💰"})
 SellNode:Button({
 	Text = "Sell inventory",
@@ -537,7 +514,6 @@ SellThreshold = SellNode:SliderInt({
     Maximum = 199,
 })
 
---// Auto-Walk
 local WallNode = Window:TreeNode({Title="Auto-Walk 🚶"})
 AutoWalkStatus = WallNode:Label({
 	Text = "None"
@@ -561,9 +537,7 @@ AutoWalkMaxWait = WallNode:SliderInt({
     Maximum = 120,
 })
 
---// Connections
 RunService.Stepped:Connect(NoclipLoop)
 Backpack.ChildAdded:Connect(AutoSellCheck)
 
---// Services
 StartServices()
