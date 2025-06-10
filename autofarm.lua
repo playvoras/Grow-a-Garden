@@ -39,17 +39,17 @@ ReGui:DefineTheme("GardenTheme", {
 local SeedStock = {}
 local OwnedSeeds = {}
 local HarvestIgnores = {Normal = false, Gold = false, Rainbow = false}
-local SelectedSeed, AutoPlantRandom, AutoPlant, AutoHarvest, AutoBuy, AutoBuyAll, SellThreshold, NoClip, AutoWalkAllowRandom, AutoSell, AutoWalk, AutoWalkStatus, AutoWalkMaxWait, SelectedSeedStock, AutoBuyFriendshipPot, AutoBuyAllSprinklers, AutoBuyWateringCan
+local SelectedSeed, AutoPlantRandom, AutoPlant, AutoHarvest, AutoBuy, AutoBuyAll, SellThreshold, NoClip, AutoWalkAllowRandom, AutoSell, AutoWalk, AutoWalkStatus, AutoWalkMaxWait, SelectedSeedStock, AutoBuyFriendshipPot, AutoBuyAllSprinklers
 local IsSelling = false
 
 local function Plant(Position, Seed)
 	GameEvents.Plant_RE:FireServer(Position, Seed)
 	wait(.3)
-}
+end
 
 local function GetFarmOwner(Farm)
 	return Farm.Important.Data.Owner.Value
-}
+end
 
 local function GetFarm(PlayerName)
 	for _, Farm in next, Farms:GetChildren() do
@@ -71,12 +71,11 @@ local function SellInventory()
 	Character:PivotTo(Previous)
 	wait(0.2)
 	IsSelling = false
-}
+end
 
 local function BuySeed(Seed) GameEvents.BuySeedStock:FireServer(Seed) end
 local function BuyFriendshipPot() GameEvents.BuyGearStock:FireServer("Friendship Pot") end
 local function BuySprinkler(Type) GameEvents.BuyGearStock:FireServer(Type) end
-local function BuyWateringCan() GameEvents.BuyGearStock:FireServer("Watering Can") end
 
 local function BuyAllSprinklers()
 	local sprinklers = {"Basic Sprinkler", "Advanced Sprinkler", "Godly Sprinkler", "Master Sprinkler"}
@@ -90,7 +89,7 @@ local function BuyAllSelectedSeeds()
     local Stock = SeedStock[Seed]
 	if not Stock or Stock <= 0 then return end
     for i = 1, Stock do BuySeed(Seed) end
-}
+end
 
 local function BuyAllAvailableSeeds()
     for SeedName, Stock in pairs(SeedStock) do
@@ -98,35 +97,35 @@ local function BuyAllAvailableSeeds()
             for i = 1, Stock do BuySeed(SeedName) end
         end
     end
-}
+end
 
 local function GetSeedInfo(Seed)
 	local PlantName = Seed:FindFirstChild("Plant_Name")
 	local Count = Seed:FindFirstChild("Numbers")
 	if not PlantName then return end
 	return PlantName.Value, Count.Value
-}
+end
 
 local function CollectSeedsFromParent(Parent, Seeds)
 	for _, Tool in next, Parent:GetChildren() do
 		local Name, Count = GetSeedInfo(Tool)
 		if Name then Seeds[Name] = {Count = Count, Tool = Tool} end
 	end
-}
+end
 
 local function CollectCropsFromParent(Parent, Crops)
 	for _, Tool in next, Parent:GetChildren() do
 		local Name = Tool:FindFirstChild("Item_String")
 		if Name then table.insert(Crops, Tool) end
 	end
-}
+end
 
 local function GetOwnedSeeds()
 	local Character = LocalPlayer.Character
 	CollectSeedsFromParent(Backpack, OwnedSeeds)
 	CollectSeedsFromParent(Character, OwnedSeeds)
 	return OwnedSeeds
-}
+end
 
 local function GetInvCrops()
 	local Character = LocalPlayer.Character
@@ -134,7 +133,7 @@ local function GetInvCrops()
 	CollectCropsFromParent(Backpack, Crops)
 	CollectCropsFromParent(Character, Crops)
 	return Crops
-}
+end
 
 local function GetArea(Base)
 	local Center = Base:GetPivot()
@@ -144,13 +143,13 @@ local function GetArea(Base)
 	local X2 = math.floor(Center.X + (Size.X/2))
 	local Z2 = math.floor(Center.Z + (Size.Z/2))
 	return X1, Z1, X2, Z2
-}
+end
 
 local function EquipCheck(Tool)
     local Character = LocalPlayer.Character
     if Tool.Parent ~= Backpack then return end
     Character.Humanoid:EquipTool(Tool)
-}
+end
 
 local MyFarm = GetFarm(LocalPlayer.Name)
 local MyImportant = MyFarm.Important
@@ -192,7 +191,7 @@ end
 local function HarvestPlant(Plant)
 	local Prompt = Plant:FindFirstChild("ProximityPrompt", true)
 	if Prompt then fireproximityprompt(Prompt) end
-}
+end
 
 local function GetSeedStock(IgnoreNoStock)
 	local SeedShop = PlayerGui.Seed_Shop
@@ -211,12 +210,12 @@ local function GetSeedStock(IgnoreNoStock)
 		end
 	end
 	return IgnoreNoStock and NewList or SeedStock
-}
+end
 
 local function CanHarvest(Plant)
     local Prompt = Plant:FindFirstChild("ProximityPrompt", true)
 	return Prompt and Prompt.Enabled
-}
+end
 
 local function CollectHarvestable(Parent, Plants, IgnoreDistance)
 	local Character = LocalPlayer.Character
@@ -232,23 +231,23 @@ local function CollectHarvestable(Parent, Plants, IgnoreDistance)
         if CanHarvest(Plant) then table.insert(Plants, Plant) end
 	end
     return Plants
-}
+end
 
 local function GetHarvestablePlants(IgnoreDistance)
     local Plants = {}
     CollectHarvestable(PlantsPhysical, Plants, IgnoreDistance)
     return Plants
-}
+end
 
 local function HarvestPlants()
 	local Plants = GetHarvestablePlants()
     for _, Plant in next, Plants do HarvestPlant(Plant) end
-}
+end
 
 local function AutoSellCheck()
     local CropCount = #GetInvCrops()
     if AutoSell.Value and CropCount >= SellThreshold.Value then SellInventory() end
-}
+end
 
 local function AutoWalkLoop()
 	if IsSelling then return end
@@ -266,7 +265,7 @@ local function AutoWalkLoop()
         Humanoid:MoveTo(Plant:GetPivot().Position)
 		AutoWalkStatus.Text = Plant.Name
     end
-}
+end
 
 local function NoclipLoop()
     local Character = LocalPlayer.Character
@@ -274,7 +273,7 @@ local function NoclipLoop()
     for _, Part in Character:GetDescendants() do
         if Part:IsA("BasePart") then Part.CanCollide = false end
     end
-}
+end
 
 local function MakeLoop(Toggle, Func)
 	coroutine.wrap(function()
@@ -282,7 +281,7 @@ local function MakeLoop(Toggle, Func)
 			if Toggle.Value then Func() end
 		end
 	end)()
-}
+end
 
 local function StartServices()
 	MakeLoop(AutoWalk, function()
@@ -294,13 +293,12 @@ local function StartServices()
 	MakeLoop(AutoBuyAll, BuyAllAvailableSeeds)
 	MakeLoop(AutoBuyFriendshipPot, function() BuyFriendshipPot() wait(1) end)
 	MakeLoop(AutoBuyAllSprinklers, function() BuyAllSprinklers() wait(1) end)
-	MakeLoop(AutoBuyWateringCan, function() BuyWateringCan() wait(1) end)
 	MakeLoop(AutoPlant, AutoPlantLoop)
 	while wait(.1) do
 		GetSeedStock()
 		GetOwnedSeeds()
 	end
-}
+end
 
 local function CreateCheckboxes(Parent, Dict)
 	for Key, Value in next, Dict do
@@ -310,7 +308,7 @@ local function CreateCheckboxes(Parent, Dict)
 			Callback = function(_, Value) Dict[Key] = Value end
 		})
 	end
-}
+end
 
 local Window = ReGui:Window({
 	Title = `{GameInfo.Name} | Depso`,
@@ -342,13 +340,11 @@ AutoBuy = BuyNode:Checkbox({Value = false, Label = "Enabled"})
 AutoBuyAll = BuyNode:Checkbox({Value = false, Label = "Auto-Buy All Seeds"})
 AutoBuyFriendshipPot = BuyNode:Checkbox({Value = false, Label = "Auto-Buy Friendship Pot"})
 AutoBuyAllSprinklers = BuyNode:Checkbox({Value = false, Label = "Auto-Buy All Sprinklers"})
-AutoBuyWateringCan = BuyNode:Checkbox({Value = false, Label = "Auto-Buy Watering Can"})
 OnlyShowStock = BuyNode:Checkbox({Value = false, Label = "Only list stock"})
 BuyNode:Button({Text = "Buy all", Callback = BuyAllSelectedSeeds})
 BuyNode:Button({Text = "Buy all seeds", Callback = BuyAllAvailableSeeds})
 BuyNode:Button({Text = "Buy Friendship Pot", Callback = BuyFriendshipPot})
 BuyNode:Button({Text = "Buy All Sprinklers", Callback = BuyAllSprinklers})
-BuyNode:Button({Text = "Buy Watering Can", Callback = BuyWateringCan})
 
 local SellNode = Window:TreeNode({Title="Auto-Sell 💰"})
 SellNode:Button({Text = "Sell inventory", Callback = SellInventory})
