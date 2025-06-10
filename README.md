@@ -3,7 +3,7 @@ Designed for this game: https://www.roblox.com/games/126884695634066/Grow-a-Gard
 
 ## Loadstring
 ```lua
-loadstring(game:HttpGet(('https://raw.githubusercontent.com/depthso/Grow-a-Garden/refs/heads/main/autofarm.lua')))()
+loadstring(game:HttpGet(('https://raw.githubusercontent.com/playvoras/Grow-a-Garden/refs/heads/main/autofarm.lua')))()
 ```
 
 ---
