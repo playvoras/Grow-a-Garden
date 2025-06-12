@@ -19,6 +19,8 @@ local GuiLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/depths
 local PrefabAssetId = "rbxassetid://" .. GuiLib.PrefabsId
 local GameEvents = ReplicatedStorage.GameEvents
 
+local vim = Instance.new("VirtualInputManager")
+
 local ThemeColors = {
     DarkGreen = Color3.fromRGB(45, 95, 25),
     Green = Color3.fromRGB(69, 142, 40),
@@ -41,7 +43,15 @@ GuiLib:DefineTheme("GardenTheme", {
 
 local SeedInventory = {}
 local ToggleBuyAll, ToggleBuyPot, ToggleBuySprinklers, ToggleBuyCan
-local ToggleDisableRender
+local ToggleDisableRender, ToggleAntiAFK
+
+local function mouse1click(x, y)
+    x = x or 0
+    y = y or 0
+    vim:SendMouseButtonEvent(x, y, 0, true, game, false)
+    task.wait()
+    vim:SendMouseButtonEvent(x, y, 0, false, game, false)
+end
 
 local function SendLog(Message)
     if not _G.WebhookConfig.Enabled then return end
@@ -134,11 +144,21 @@ local function CreateLoop(Toggle, Action)
 	end)()
 end
 
+local function CreateAntiAFKLoop()
+    coroutine.wrap(function()
+        while wait(600) do
+            if ToggleAntiAFK.Value then
+                mouse1click(1, 1)
+            end
+        end
+    end)()
+end
+
 local LastActive = tick()
 local IsRenderOff = false
 local IdleDelay = 10
 
-local function HandleRenderToggle() -- move to enable it back
+local function HandleRenderToggle()
     local Character = LocalPlayer.Character
     if not Character then return end
     local Humanoid = Character:FindFirstChildOfClass("Humanoid")
@@ -164,6 +184,7 @@ local function Initialize()
 	CreateLoop(ToggleBuySprinklers, function() PurchaseAllSprinklers() wait(1) end)
 	CreateLoop(ToggleBuyCan, function() PurchaseCan() wait(1) end)
     CreateLoop(ToggleDisableRender, HandleRenderToggle)
+    CreateAntiAFKLoop()
 	while wait(0.1) do
 		RefreshStock()
 	end
@@ -187,5 +208,6 @@ BuyGroup:Button({Text = "Buy Watering Can", Callback = PurchaseCan})
 
 local SettingsGroup = MainWindow:TreeNode({Title = "Settings"})
 ToggleDisableRender = SettingsGroup:Checkbox({Value = false, Label = "Auto Disable 3D Rendering"})
+ToggleAntiAFK = SettingsGroup:Checkbox({Value = false, Label = "Anti AFK"})
 
 Initialize()
