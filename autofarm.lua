@@ -3,6 +3,13 @@ local InsertService = game:GetService("InsertService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+
+_G.WebhookConfig = {
+    ["Enabled"] = true,
+    ["Webhook"] = "no",
+    ["TrackedSeeds"] = {"Beanstalk", "Ember Lily"}
+}
 
 local LocalPlayer = Players.LocalPlayer
 local Leaderstats = LocalPlayer.leaderstats
@@ -39,8 +46,45 @@ ReGui:DefineTheme("GardenTheme", {
 local SeedStock = {}
 local OwnedSeeds = {}
 local HarvestIgnores = {Normal = false, Gold = false, Rainbow = false}
-local SelectedSeed, AutoPlantRandom, AutoPlant, AutoHarvest, AutoBuy, AutoBuyAll, SellThreshold, NoClip, AutoWalkAllowRandom, AutoSell, AutoWalk, AutoWalkStatus, AutoWalkMaxWait, SelectedSeedStock, AutoBuyFriendshipPot, AutoBuyAllSprinklers
+local SelectedSeed, AutoPlantRandom, AutoPlant, AutoHarvest, AutoBuy, AutoBuyAll, SellThreshold, NoClip, AutoWalkAllowRandom, AutoSell, AutoWalk, AutoWalkStatus, AutoWalkMaxWait, SelectedSeedStock, AutoBuyFriendshipPot, AutoBuyAllSprinklers, AutoBuyWateringCan
 local IsSelling = false
+
+local function SendWebhook(Message)
+    if not _G.WebhookConfig["Enabled"] then return end
+    
+    local TimeStamp = DateTime.now():ToIsoDate()
+    local CurrentTime = os.date("%H:%M:%S")
+    
+    local Body = {
+        embeds = {
+            {
+                color = 5763719,
+                description = Message .. " at time " .. CurrentTime,
+                timestamp = TimeStamp
+            }
+        }
+    }
+
+    local RequestData = {
+        Url = _G.WebhookConfig["Webhook"],
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = HttpService:JSONEncode(Body)
+    }
+
+    task.spawn(request, RequestData)
+end
+
+local function IsTrackedSeed(SeedName)
+    for _, TrackedSeed in pairs(_G.WebhookConfig["TrackedSeeds"]) do
+        if SeedName == TrackedSeed then
+            return true
+        end
+    end
+    return false
+end
 
 local function Plant(Position, Seed)
 	GameEvents.Plant_RE:FireServer(Position, Seed)
@@ -73,9 +117,16 @@ local function SellInventory()
 	IsSelling = false
 end
 
-local function BuySeed(Seed) GameEvents.BuySeedStock:FireServer(Seed) end
+local function BuySeed(Seed) 
+    GameEvents.BuySeedStock:FireServer(Seed)
+    if IsTrackedSeed(Seed) then
+        SendWebhook("Bought " .. Seed)
+    end
+end
+
 local function BuyFriendshipPot() GameEvents.BuyGearStock:FireServer("Friendship Pot") end
 local function BuySprinkler(Type) GameEvents.BuyGearStock:FireServer(Type) end
+local function BuyWateringCan() GameEvents.BuyGearStock:FireServer("Watering Can") end
 
 local function BuyAllSprinklers()
 	local sprinklers = {"Basic Sprinkler", "Advanced Sprinkler", "Godly Sprinkler", "Master Sprinkler"}
@@ -293,6 +344,7 @@ local function StartServices()
 	MakeLoop(AutoBuyAll, BuyAllAvailableSeeds)
 	MakeLoop(AutoBuyFriendshipPot, function() BuyFriendshipPot() wait(1) end)
 	MakeLoop(AutoBuyAllSprinklers, function() BuyAllSprinklers() wait(1) end)
+	MakeLoop(AutoBuyWateringCan, function() BuyWateringCan() wait(1) end)
 	MakeLoop(AutoPlant, AutoPlantLoop)
 	while wait(.1) do
 		GetSeedStock()
@@ -340,11 +392,13 @@ AutoBuy = BuyNode:Checkbox({Value = false, Label = "Enabled"})
 AutoBuyAll = BuyNode:Checkbox({Value = false, Label = "Auto-Buy All Seeds"})
 AutoBuyFriendshipPot = BuyNode:Checkbox({Value = false, Label = "Auto-Buy Friendship Pot"})
 AutoBuyAllSprinklers = BuyNode:Checkbox({Value = false, Label = "Auto-Buy All Sprinklers"})
+AutoBuyWateringCan = BuyNode:Checkbox({Value = false, Label = "Auto-Buy Watering Can"})
 OnlyShowStock = BuyNode:Checkbox({Value = false, Label = "Only list stock"})
 BuyNode:Button({Text = "Buy all", Callback = BuyAllSelectedSeeds})
 BuyNode:Button({Text = "Buy all seeds", Callback = BuyAllAvailableSeeds})
 BuyNode:Button({Text = "Buy Friendship Pot", Callback = BuyFriendshipPot})
 BuyNode:Button({Text = "Buy All Sprinklers", Callback = BuyAllSprinklers})
+BuyNode:Button({Text = "Buy Watering Can", Callback = BuyWateringCan})
 
 local SellNode = Window:TreeNode({Title="Auto-Sell 💰"})
 SellNode:Button({Text = "Sell inventory", Callback = SellInventory})
