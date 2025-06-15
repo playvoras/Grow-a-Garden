@@ -42,8 +42,8 @@ GuiLib:DefineTheme("GardenTheme", {
 })
 
 local SeedInventory = {}
-local ToggleBuyAll, ToggleBuyPot, ToggleBuySprinklers, ToggleBuyCan
-local ToggleDisableRender, ToggleAntiAFK
+local ToggleBuyAll, ToggleBuyPot, ToggleBuySprinklers, ToggleBuyCan, ToggleBuyFlowerPack
+local ToggleAntiAFK
 
 local function mouse1click(x, y)
     x = x or 0
@@ -100,6 +100,7 @@ end
 local function PurchasePot() GameEvents.BuyGearStock:FireServer("Friendship Pot") end
 local function PurchaseSprinkler(Name) GameEvents.BuyGearStock:FireServer(Name) end
 local function PurchaseCan() GameEvents.BuyGearStock:FireServer("Watering Can") end
+local function PurchaseFlowerSeedPack() GameEvents.BuyEventShopStock:FireServer("Flower Seed Pack") end
 
 local function PurchaseAllSprinklers()
 	local Names = {"Basic Sprinkler", "Advanced Sprinkler", "Godly Sprinkler", "Master Sprinkler"}
@@ -154,36 +155,12 @@ local function CreateAntiAFKLoop()
     end)()
 end
 
-local LastActive = tick()
-local IsRenderOff = false
-local IdleDelay = 10
-
-local function HandleRenderToggle()
-    local Character = LocalPlayer.Character
-    if not Character then return end
-    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-    if not Humanoid then return end
-
-    if Humanoid.MoveDirection.Magnitude > 0 then
-        LastActive = tick()
-        if IsRenderOff then
-            RunService:Set3dRenderingEnabled(true)
-            IsRenderOff = false
-        end
-    else
-        if tick() - LastActive >= IdleDelay and not IsRenderOff then
-            RunService:Set3dRenderingEnabled(false)
-            IsRenderOff = true
-        end
-    end
-end
-
 local function Initialize()
 	CreateLoop(ToggleBuyAll, PurchaseAllSeeds)
 	CreateLoop(ToggleBuyPot, function() PurchasePot() wait(1) end)
 	CreateLoop(ToggleBuySprinklers, function() PurchaseAllSprinklers() wait(1) end)
 	CreateLoop(ToggleBuyCan, function() PurchaseCan() wait(1) end)
-    CreateLoop(ToggleDisableRender, HandleRenderToggle)
+	CreateLoop(ToggleBuyFlowerPack, function() PurchaseFlowerSeedPack() wait(1) end)
     CreateAntiAFKLoop()
 	while wait(0.1) do
 		RefreshStock()
@@ -201,13 +178,14 @@ ToggleBuyAll = BuyGroup:Checkbox({Value = false, Label = "Auto-Buy All Seeds"})
 ToggleBuyPot = BuyGroup:Checkbox({Value = false, Label = "Auto-Buy Friendship Pot"})
 ToggleBuySprinklers = BuyGroup:Checkbox({Value = false, Label = "Auto-Buy All Sprinklers"})
 ToggleBuyCan = BuyGroup:Checkbox({Value = false, Label = "Auto-Buy Watering Can"})
+ToggleBuyFlowerPack = BuyGroup:Checkbox({Value = false, Label = "Auto-Buy Flower Seed Pack"})
 BuyGroup:Button({Text = "Buy all seeds", Callback = PurchaseAllSeeds})
 BuyGroup:Button({Text = "Buy Friendship Pot", Callback = PurchasePot})
 BuyGroup:Button({Text = "Buy All Sprinklers", Callback = PurchaseAllSprinklers})
 BuyGroup:Button({Text = "Buy Watering Can", Callback = PurchaseCan})
+BuyGroup:Button({Text = "Buy Flower Seed Pack", Callback = PurchaseFlowerSeedPack})
 
 local SettingsGroup = MainWindow:TreeNode({Title = "Settings"})
-ToggleDisableRender = SettingsGroup:Checkbox({Value = false, Label = "Auto Disable 3D Rendering"})
 ToggleAntiAFK = SettingsGroup:Checkbox({Value = false, Label = "Anti AFK"})
 
 Initialize()
